@@ -1,0 +1,13 @@
+{application, forge,
+ [
+  {description, "Melt down unstructured data and recast it into beauty"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  parse_trans
+                 ]},
+  {modules, []},
+  {env, []}
+ ]}.
