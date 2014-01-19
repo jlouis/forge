@@ -4,4 +4,6 @@ PROJECT = forge
 DEPS = parse_trans
 dep_parse_trans = https://github.com/uwiger/parse_trans.git
 
+CT_SUITES = eunit
+
 include erlang.mk

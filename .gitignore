@@ -7,3 +7,5 @@ erl_crash.dump
 .erlang.mk.packages.v1
 *.beam
 *.app
+logs
+current_counterexample.eqc
