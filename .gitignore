@@ -9,3 +9,4 @@ erl_crash.dump
 *.app
 logs
 current_counterexample.eqc
+.eqc-info
