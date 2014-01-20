@@ -1,3 +1,4 @@
+%% -*- coding: utf-8 -*-
 %% module lens implements functional lenses for erlang
 -module(lens).
 
@@ -10,7 +11,8 @@
 -endif.
 
 %% Lens constructors
--export([tuple/1, plist/1, json_jsx/1, json_jiffy/1]).
+-export([h_tuple/1, h_plist/1, h_json_jsx/1, h_json_jiffy/1]).
+-export([id/0, const/2]).
 
 %% Lens algebra
 -export([c/1, c/2]).
@@ -18,26 +20,33 @@
 %% Tooling functions
 -export([v/1, s/1, o/2, o/3]).
 
-% The lens module implements a concept called "Functional Lenses" for Erlang. The crucial idea of these is
-% to implement a way to abstract over data, given a functional accessor/mutator construction. That is:
-% 
-% * Like an accessor/mutator pair in imperative OO languages, but⋯
-% * Is functional and algebraically composable
-% 
-% This module implements such lenses in the setting of the Erlang programming language
+%% The lens module implements a concept called "Functional Lenses" for Erlang. The crucial idea
+%% of these is to implement a way to abstract over data, given a functional accessor/mutator
+%% construction. That is:
+%% 
+%% * Like an accessor/mutator pair in imperative OO languages, but⋯
+%% * Is functional and algebraically composable
+%% 
+%% This module implements such lenses in the setting of the Erlang programming language
+
+%% Rule:
+%%   There is one rule for the use of this module. The notion 'omega' (Omega) is treated
+%%   specially as the "undefined" value which can be used as a base constructor.
+%%   Yes, it is the unicode GREEK CAPITL LETTER OMEGA U+03A9, and Erlang understands
+%%   such unicode entries.
 
 %% LENSES
 %% ------------------------------------------------
 
 %% tuple/1 provides a lens accessor for a tuple. The parameter given is the element to access.
-tuple(N) when is_integer(N) ->
+h_tuple(N) when is_integer(N) ->
     #lens {
       g = fun(R) -> element(N, R) end,
       s = fun(X, R) -> setelement(N, R, X) end
     }.
     
 %% plist/1 provides a lens for proplists
-plist(Key) ->
+h_plist(Key) ->
     #lens {
       g = fun(R) ->
       		case lists:keyfind(Key, 1, R) of
@@ -45,34 +54,50 @@ plist(Key) ->
       		    {_, V} -> V
       		end
       	  end,
-      s = fun(X, R) -> lists:keyreplace(Key, 1, R, {Key, X}) end
+      s = fun
+            (X, 'omega') -> [{Key, X}];
+            (X, R) -> lists:keyreplace(Key, 1, R, {Key, X})
+          end
     }.
     
 %% json_jsx/1 provides a lens for JSX json-like structures
-json_jsx(K) ->
+h_json_jsx(K) ->
     G = fun
           ([{}]) -> error(badarg);
           ([{A, _} | _] = R) when is_list(R), is_atom(A) orelse is_binary(A) -> element(2, lists:keyfind(K, 1, R))
         end,
     S = fun
+          (X, 'omega') -> [{K, X}];
           (X, [{}]) -> [{K, X}];
           (X, R) when is_list(R) -> lists:keystore(K, 1, R, {K, X})
         end,
     #lens { g = G, s = S }.
 
 %% json_jiffy/1 provides a lens for Jiffy/msgpack based json-like structures
-json_jiffy(K) ->
+h_json_jiffy(K) ->
     G = fun
-          ([{}]) -> error(badarg);
+          ({[]}) -> error(badarg);
           ({[{A, _} | _] = R}) when is_list(R), is_atom(A) orelse is_binary(A) -> element(2, lists:keyfind(K, 1, R))
         end,
     S = fun
-          (X, [{}]) -> [{K, X}];
+          (X, 'omega') -> {[{K, X}]};
+          (X, {[]}) -> {[{K, X}]};
           (X, {R}) when is_list(R) -> {lists:keystore(K, 1, R, {K, X})}
         end,
     #lens { g = G, s = S }.
 
-%% Algebraic functions
+id() ->
+    #lens { g = fun(X) -> X end, s = fun(_X, R) -> R end }.
+
+const(V, D) ->
+    #lens { g = fun(_) -> V end,
+            s = fun ('omega', _R) -> D;
+                    (_X, R) -> R
+                end }.
+
+%% ALGEBRAIC FUNCTIONS
+%% -----------------------------------------------
+
 c(#lens { g = LG, s = LP }, #lens { g = KG, s = KP }) ->
     #lens { g = fun(R) -> KG(LG(R)) end, s = fun(A, R) -> LP(KP(A, LG(R)), R) end}.
    
@@ -99,11 +124,14 @@ o(#lens { g = G, s = S }, F, X) -> S(F(G(X)), X).
 %% A list of atom keywords
 g_keyword() ->
 	oneof([
+		'baby_Ñandú',
 		black_mamba,
 		blob_fish,
+		brilleabe,
 		cheetah,
 		condor,
 		crocodile,
+		drilleabe,
 		elephant,
 		flamingo,
 		giraffe,
@@ -111,6 +139,7 @@ g_keyword() ->
 		hammerhead_shark,
 		hippo,
 		kiwi,
+		'kaffebøffel',
 		komodo_dragon,
 		leopard,
 		lion,
@@ -124,6 +153,8 @@ g_keyword() ->
 		sloth,
 		tarantula,
 		tucan,
+		unicorn,
+		werewolf,
 		zebra
 		]).
 
@@ -141,6 +172,9 @@ g_proplist() -> list({oneof([g_keyword(), g_star_sign()]), int()}).
 g_tuple(K) ->
 	list_to_tuple(vector(K, int())).
 
+'omega'(Gen) ->
+    frequency([{100, Gen}, {10, return('omega')}]).
+
 %% The three properties of lenses:
 
 %% Lenses have three properties. If we get out a value and then
@@ -149,12 +183,16 @@ lens_prop_getput(Gen, #lens { g = Get, s = Put}) ->
     ?FORALL(X, Gen,
             X == Put(Get(X), X)).
 
+
 %% And if we put in a value and then get the value out, we should get
 %% the value we just put.
 lens_prop_putget(Gen, Val, #lens { g = Get, s = Put}) ->
     ?FORALL({X, A}, {Gen, Val},
             A == Get(Put(A, X))).
 
+lens_prop_putget_omega(Gen, Val, #lens { g = Get, s = Put}) ->
+    ?FORALL({X, A}, {'omega'(Gen), Val},
+            A == Get(Put(A, X))).
 %% The point is that we would like to *PROVE* the above properties for
 %% the lenses we derive. But proofs are large, boring and hard. Hence,
 %% we simply provide a tool which can test our lens access via
@@ -169,6 +207,22 @@ lens_prop_putput(Gen, Val, #lens { s = Put }) ->
     ?FORALL({X, A, A1}, {Gen, Val, Val},
             Put(A1, Put(A, X)) == Put(A1, X)).
 
+%% Omega rules for lenses which has 'omega'-like-behaviour:
+% lens_omega_1(#lens { g = Get }) ->
+%     'omega' == Get('omega').
+%     
+% lens_omega_2(Val, #lens { s = Put }) ->
+%     ?FORALL(V, 'omega'(Val),
+%         'omega' == Put('omega', V)).
+%         
+% lens_omega_3(Val, #lens { g = Get }) ->
+%     ?FORALL(V, Val,
+%         'omega' /= Get(V)).
+%         
+% lens_omega_4(Gen, Val, #lens { s = Put}) ->
+%     ?FORALL({X, R}, {'omega'(Val), Gen},
+%       Put(X, R) /= 'omega').
+
 prop_true() ->
 	?FORALL(_X, int(), true).
 
@@ -177,7 +231,7 @@ prop_tuple_1() ->
 	Sz = 5,
 	?FORALL(K, choose(1, Sz),
 	    begin
-	      lens_prop_getput(g_tuple(Sz), tuple(K))
+	      lens_prop_getput(g_tuple(Sz), h_tuple(K))
 	    end).
 
 prop_tuple_2() ->
@@ -185,7 +239,7 @@ prop_tuple_2() ->
 	Sz = 5,
 	?FORALL(K, choose(1, Sz),
 	    begin
-	      lens_prop_putget(g_tuple(Sz), int(), tuple(K))
+	      lens_prop_putget(g_tuple(Sz), int(), h_tuple(K))
 	    end).
 
 prop_tuple_3() ->
@@ -193,13 +247,13 @@ prop_tuple_3() ->
 	Sz = 5,
 	?FORALL(K, choose(1, Sz),
 	    begin
-	      lens_prop_putput(g_tuple(Sz), int(), tuple(K))
+	      lens_prop_putput(g_tuple(Sz), int(), h_tuple(K))
 	    end).
 
 prop_proplist_1() ->
 	?FORALL(Keyword, g_keyword(),
 	  begin
-	      lens_prop_getput(g_proplist(), plist(Keyword))
+	      lens_prop_getput(g_proplist(), h_plist(Keyword))
 	  end).
 
 prop_proplist_2() ->
@@ -209,14 +263,14 @@ prop_proplist_2() ->
 	  	  [] -> true;
 	  	  Keywords ->
 	  	    ?LET(KW, oneof(Keywords),
-	  	         lens_prop_putget(PL, int(), plist(KW)))
+	  	         lens_prop_putget_omega(PL, int(), h_plist(KW)))
 	  	end
 	  end).
 
 prop_proplist_3() ->
 	?FORALL(Keyword, g_keyword(),
 	  begin
-	      lens_prop_putput(g_proplist(), int(), plist(Keyword))
+	      lens_prop_putput(g_proplist(), int(), h_plist(Keyword))
 	  end).
 
 properties_test() ->
