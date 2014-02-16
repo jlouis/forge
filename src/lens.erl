@@ -24,7 +24,7 @@
 %% of these is to implement a way to abstract over data, given a functional accessor/mutator
 %% construction. That is:
 %% 
-%% * Like an accessor/mutator pair in imperative OO languages, but⋯
+%% * Like an accessor/mutator pair in imperative OO languages, but
 %% * Is functional and algebraically composable
 %% 
 %% This module implements such lenses in the setting of the Erlang programming language
@@ -32,11 +32,23 @@
 %% Rule:
 %%   There is one rule for the use of this module. The notion 'omega' (Omega) is treated
 %%   specially as the "undefined" value which can be used as a base constructor.
-%%   Yes, it is the unicode GREEK CAPITL LETTER OMEGA U+03A9, and Erlang understands
-%%   such unicode entries.
 
 %% LENSES
 %% ------------------------------------------------
+
+%% h_map/1 provides a lens accessor for a map.
+% h_map(K) ->
+%     #lens {
+% 	g = fun(M) -> maps:get(K, M) end,
+% 	s = fun(X, M) -> maps:put(K, X, M) end
+%     }.
+% 
+% plunge(N) ->
+%     #lens {
+% 	g = fun(C) -> maps:put(N, C, #{}) end,
+% 	s = fun(X, _M) -> maps:get(N, X) end
+%     }.
+
 
 %% tuple/1 provides a lens accessor for a tuple. The parameter given is the element to access.
 h_tuple(N) when is_integer(N) ->
@@ -44,7 +56,7 @@ h_tuple(N) when is_integer(N) ->
       g = fun(R) -> element(N, R) end,
       s = fun(X, R) -> setelement(N, R, X) end
     }.
-    
+
 %% plist/1 provides a lens for proplists
 h_plist(Key) ->
     #lens {

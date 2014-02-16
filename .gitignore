@@ -10,3 +10,4 @@ erl_crash.dump
 logs
 current_counterexample.eqc
 .eqc-info
+bar_gen.erl
