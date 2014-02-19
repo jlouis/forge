@@ -8,7 +8,11 @@
 -type trecord() :: {atom(), [{atom(), [props()]}]}.
   
 t() ->
-	compile([{foo, [{a, [{json_tag, "fooQuux"}]}, {b, [{default, 42}]} ]}], bar).
+	compile([
+		{qux, [{a, [{json_tag, "zot"}, {default, "Hello"}]}, {b, []}] },
+		{foo, [{a, [{json_tag, "fooQuux"}, {default, 42}]}, {b, [{rec, qux}]} ]}
+		],
+		mod).
 
 -spec compile( trecord(), atom() ) -> any().
 compile(TRecords, ModName) ->
@@ -18,7 +22,9 @@ compile(TRecords, ModName) ->
 				merl_build:add_function(X, Name, Cs, S)
 			end,
 			init_module(ModName, TRecords),
-			[{true, to_json, [to_json(hd(TRecords))]}])),
+			[{true, to_json, [to_json(TR) || TR <- TRecords]},
+			 {true, from_json, [from_json(TR) || TR <- TRecords]}]
+	)),
 	file:write_file(lists:concat([ModName, "_gen.erl"]),
 		erl_prettypr:format(erl_syntax:form_list(Forms),
 			[{paper, 160}, {ribbon, 80}]) ).
@@ -44,13 +50,49 @@ to_json({Name, Ids}) ->
 
 to_json_ids(_Name, [], _) -> [];
 to_json_ids(Name, [{F, Props} | Ids], S) ->
-	JSONTag = case proplists:get_value(json_tag, Props, undefined) of
-		undefined -> F;
-		Tag when is_list(Tag) -> Tag
+	JSONTag = tag(F, Props),
+	JSONExpr = case rec(Props) of
+		undefined -> ?Q(["{_@JSONTag@, element(_@S@, Rec)}"]);
+		{rec, _} -> ?Q(["{_@JSONTag@, to_json(element(_@S@, Rec))}"])
 	end,
-	JSONExpr = ?Q(["{_@JSONTag@, element(_@S@, Rec)}"]),
 	[JSONExpr | to_json_ids(Name, Ids, S+1)].
 
-gensym(I) ->
-	merl:term(
-		list_to_atom("Z" ++ integer_to_list(I))).
+from_json({Name, Ids}) ->
+	Exprs = from_json_ids(Name, Ids, 1),
+	?Q([
+	  "(JSON, Rec) when is_record(Rec, _@Name@) ->"
+	  "    X0 = Rec,"
+	  "	   _@Exprs"]).
+	
+from_json_ids(_Name, [], S) ->
+	G = gensym(S),
+	?Q(["_@G"]);
+from_json_ids(Name, [{F, Props} | Ids], S) ->
+	Next = from_json_ids(Name, Ids, S+1),
+	JSONTag = tag(F, Props),
+	case rec(Props) of
+		undefined ->
+			Before = gensym(S-1),
+			Sym = gensym(S),
+			?Q(["_@Sym = setelement(_@S@, _@Before, proplists:get_value(_@JSONTag@, JSON, undefined)), _@Next"]);
+		{rec, ObjRec} ->
+			Before = gensym(S-1),
+			Sym = gensym(S),
+			?Q(["_@Sym = setelement(_@S@, _@Before, from_json(proplists:get_value(_@JSONTag@, JSON, undefined), _@ObjRec@)), _@Next"])
+	end.
+	
+rec(Props) ->
+	case proplists:get_value(rec, Props, undefined) of
+		undefined -> undefined;
+		R -> {rec, R}
+	end.
+
+tag(F, Props) ->
+	case proplists:get_value(json_tag, Props, undefined) of
+		undefined -> F;
+		Tag when is_list(Tag) -> Tag
+	end.
+
+gensym(S) ->
+	Var = list_to_atom("X" ++ integer_to_list(S)),
+	merl:var(Var).
