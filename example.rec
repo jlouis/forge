@@ -1,0 +1,16 @@
+%% This is an example record file for use with the code system
+
+-record(foo
+    { a = 10 :: integer() `field_a`,
+      b = <<"Hello">> :: binary() `field_b`
+    }).
+
+%% This record definition maps to the following JSON structure:
+%% 
+%% {
+%% 	"field_a" : 10,
+%% 	"field_b" : "Hello"
+%% }
+
+%% And we will export the functions
+%% from_json/1 and to_json/1 for this function in question when compiling from this spec.
