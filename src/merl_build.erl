@@ -10,7 +10,7 @@
 
 -import(merl, [term/1]).
 
--include_lib("merl/include/merl.hrl").
+-include_lib("syntax_tools/include/merl.hrl").
 
 -type filename() :: string().
 

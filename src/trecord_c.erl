@@ -1,6 +1,6 @@
 -module(trecord_c).
 
--include_lib("merl/include/merl.hrl").
+-include_lib("syntax_tools/include/merl.hrl").
 
 -export([compile/2, t/0]).
 
