@@ -1,0 +1,7 @@
+• Upgrade erlang.mk
+• Use erlang.mk to build rebar.config
+• Build environment
+• Move test code to the test directory
+• Travis build
+• Use built-in merl
+• Move code, we don't need right away into a stash.
