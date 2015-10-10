@@ -4,6 +4,9 @@
 
 -include("lens.hrl").
 
+%% The "invalid" state
+-export([omega/0]).
+
 %% Lens constructors
 -export([h_tuple/1, h_plist/1, h_json_jsx/1, h_json_jiffy/1, h_map/1]).
 -export([id/0, const/2]).
@@ -13,6 +16,8 @@
 
 %% Tooling functions
 -export([v/1, s/1, o/2, o/3]).
+
+omega() -> ?OMEGA.
 
 %% The lens module implements a concept called "Functional Lenses" for Erlang. The crucial idea
 %% of these is to implement a way to abstract over data, given a functional accessor/mutator

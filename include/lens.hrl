@@ -1,3 +1,8 @@
+
+%% Since Erlang doesn't support UTF8 atoms yet, we use this Latin1 marker as the
+%% "Omega" symbol in Erlang at the moment.
+-define(OMEGA, '«·Omega·»').
+
 %% To implement a lens, implement the functions g and s given here, subject to the following rules:
 %% (1) Assume R is the type of records, and X is the value returned by the lens
 %% (2) g should have type R → X
