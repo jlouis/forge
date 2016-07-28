@@ -8,8 +8,89 @@ The current implementations for doing this are:
 
 # Lens Tutorial
 
-TODO
+Lenses work a bit like the `sofs` library for Erlang: once you know how to use it, you can express thing that were previously hard to do in Erlang. Lenses solve the problem of working with deep nested data structures without picking them apart all the time. Rather, you use lenses to define what you want to change, and then you apply those lenses to change the structure. It gives you the equivalent of a pointed update in imperative languages:
 
+	struct.a.b.c = 3
+
+but in a pure functional setting.
+
+Here is the internal `lens` record:
+
+	#lens { viewer, setter }
+	
+It contains two functions, the *view* and the *set* function. They work together with an object, normally called the *target* of the lens. Here is the mnemonic idea: the lens provides a optical way to operate on the target. You can *view* the target through the lens, which focuses on a sub-part of the target. And you can *set* that subpart through the lens, which updates that part only, but keeps the rest of the *target* unchanged.
+
+**Example:** If we have a tuple `{a, 10}`, we can define a view on the 1st element of that tuple: `V = fun(T) -> element(1, T) end`. And we can set that element as well to a new value with a function `S = fun(T, NewVal) -> setelement(1, T, NewVal) end`. Together these form a lens. This lens is also available by calling the function `lens:element(1)`. We can use the lens like follows:
+
+	1> L = lens:element(1),
+	2> lens:v(L, {a, 10}).
+	a
+
+The `v/2` function uses the view of the lens. Similarly, we can use the `s/3` function for setting things via the lens:
+
+	3> lens:s(L, {a, 10}, b).
+	{b,10}
+
+## Lens Rules
+
+The lens you saw has a peculiar relation between the view and the set function. These are codified in the *lens rules*. All lenses you define must obey the rules, and it is up to you to check that they do. We assume a specific lens with functions `view` and `set` here:
+
+* [PutGet] for any target T and value A: `A = view(set(T, A))`.
+* [GetPut] for any target T: `T = set(T, view(T))`.
+* [PutPut] for any target T and values A, A1: `set(T, A1) = set(set(T, A), A1)`
+
+These rules state that the lens behaves "as it ought to" when operating on data. In particular, it establishes a relation between the view and the set function of the lens. The rules are important because they make sure the lenses we define are well-behaved, even if we start to combine them.
+
+## Combining lenses
+
+The power of lenses are that they can be combined, or composed into larger lenses. This is what makes them effective for updating complex data structures, by picking the structure apart and joining it together again. Like in a camera, we can combine several lenses in order to glean inside more complex structure:
+
+	4> L2 = lens:element(2).
+	5> L3 = lens:compose(L, L2).
+	6> lens:v(L3, {{x, y}, {3, 5}}).
+	y
+
+The composition says: "run L and then run L2 on the result". So we pick the first element, and then we pick the second element of the result, obtaining `y`. But we can also use the lens to *set* that element:
+
+	7> lens:s(L3, {{x, y}, {3, 5}}, z).
+	{{x,z},{3,5}}
+
+which is the power of the lens-abstraction: it allows us to dig "deep" inside structure and update data deeply.
+
+## Lenses on Tuples / Records
+
+We've already met the tuple lens: `lens:element(K)` for a given `K`. This lens can also work on records, as
+
+	RL = lens:element(#rec.a),
+	
+will define a lens of the record value of `a`. I.e., given a record `R`, we have:
+
+	R#rec.a = lens:v(RL, R)
+	
+## Lenses on Lists
+
+On lists, lenses introduces a new way of operating. There is a lens, `lens:nth(K)` for a `K` which operates on the `K`th element of a list. But this lens is often rather slow to use for large lists, so use it with caution.
+
+But note that there is a *join* over lists with lenses as well. In a join, we combine several lenses into a view of the structure:
+
+	8>
+	  E1 = lens:element(1),
+	  E2 = lens:element(3),
+	  T = {1,2,3,4},
+	  JL = lens:join_list([E1, E2]),
+	  lens:v(JL, T).
+	
+	[1,3]
+
+And of course, we can use the join to set elements as well:
+
+	9> lens:s(JL, T, [a, b])
+	{a,2,b,4}
+
+## Lenses on Maps
+
+…
+	
 # QuickCheck
 
 QuickChecked libraries:

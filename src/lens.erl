@@ -6,6 +6,7 @@
 -export([make/2]).
 
 %% View/Set
+-export([v/2, s/3]).
 -export([view/1, set/1]).
 
 %% Transformation
@@ -21,7 +22,7 @@
 -export([
          element/1,
          nth/1,
-         map/1,
+         key/1,
          id/0
 ]).
 
@@ -36,6 +37,9 @@ make(Viewer, Setter) ->
 view(#lens { viewer = V }) -> V.
 set(#lens { setter = S }) -> S.
 
+v(#lens { viewer = V }, T) -> V(T).
+s(#lens { setter = S }, T, Val) -> S(T, Val).
+
 transform(#lens { viewer = V, setter = S}, D, F) ->
     S(D, F(V(D))).
 
@@ -43,9 +47,9 @@ compose(#lens { viewer = V1, setter = S1}, #lens { viewer = V2, setter = S2}) ->
     #lens {
        viewer = fun(X) -> V2(V1(X)) end,
        setter = fun(T, Value) ->
-                        SubV = V2(T),
-                        NSubV = S1(SubV, Value),
-                        S2(T, NSubV)
+                        SubT = V1(T),
+                        NSubV = S2(SubT, Value),
+                        S1(T, NSubV)
                 end
       }.
 
@@ -89,7 +93,7 @@ nth(N) ->
        }.
 
 %% -- LENSES ON MAPS ------------------------------------
-map(Key) ->
+key(Key) ->
     #lens {
        viewer = fun(M) -> maps:get(Key, M) end,
        setter = fun(M, V) -> maps:put(Key, V, M) end
