@@ -1,6 +1,7 @@
 -module(prism).
 
--export([pre/2, re/2]).
+-export([preview/1, review/1]).
+-export([p/2, r/2]).
 
 -export([ok/0]).
 
@@ -9,8 +10,11 @@
 	re
 }).
 
-pre(#prism { pre = Pre }, Obj) -> Pre(Obj).
-re(#prism { re = Re }, Val) -> Re(Val).
+preview(#prism { pre = P }) -> P.
+review(#prism { re = R }) -> R.
+
+p(#prism { pre = Pre }, Obj) -> Pre(Obj).
+r(#prism { re = Re }, Val) -> Re(Val).
 
 ok() ->
     #prism {
