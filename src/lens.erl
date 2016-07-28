@@ -16,7 +16,7 @@
 -export([compose/1, compose/2]).
 
 %% Joins
--export([join_list/1]).
+-export([join_list/1, join_map/1]).
 
 %% Standard Lenses
 -export([
@@ -56,7 +56,7 @@ compose(#lens { viewer = V1, setter = S1}, #lens { viewer = V2, setter = S2}) ->
 compose(Args) ->
     lists:foldr(fun compose/2, id(), Args).
 
-%% -- JOINS/LIST ------------------------------------
+%% -- JOINS ------------------------------------
 join_list(Lenses) ->
     #lens {
        viewer = fun(T) -> [(view(L))(T) || L <- Lenses] end,
@@ -67,7 +67,22 @@ join_list_set(T, [], []) -> T;
 join_list_set(T, [V|Vs], [L|Ls]) ->
     NewT = (set(L))(T, V),
     join_list_set(NewT, Vs, Ls).
-                        
+
+join_map_set(T, _, []) -> T;
+join_map_set(T, VMap, [{K, L} | Ls]) ->
+    V = maps:get(K, VMap),
+    Res = s(L, T, V),
+    join_map_set(Res, VMap, Ls).
+
+join_map(LMap) ->
+    Base = maps:to_list(LMap),
+    #lens {
+    	viewer = fun(T) ->
+    	    Res = [{K, v(L, T)} || {K, L} <- Base],
+    	    maps:from_list(Res)
+    	  end,
+    	setter = fun(T, VMap) -> join_map_set(T, VMap, Base) end
+    }.
 %% -- BASE LENSES ----------------------------------
 id() ->
     #lens {

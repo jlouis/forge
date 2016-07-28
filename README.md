@@ -14,6 +14,14 @@ Lenses work a bit like the `sofs` library for Erlang: once you know how to use i
 
 but in a pure functional setting.
 
+Lenses are useful in the following situations:
+
+* You often manipulate specific data in a deeply nested structure.
+* You need to manipulate many sub-parts of a deeply nested structure at the same time.
+* You end up writing many functions pattern matching their way to the target element.
+
+Their use is not on data, where you have no need to go deep into the nesting. A simple pattern match tend to be enough to pick apart the data structure you are working on.
+
 Here is the internal `lens` record:
 
 	#lens { viewer, setter }
@@ -91,12 +99,27 @@ And of course, we can use the join to set elements as well:
 
 On maps, you have the lens `lens:key(Key)` where `Key` is the map key to focus on. It works just like every other lens:
 
-	9> L = map:key(a),
+	9> L = lens:key(a),
 	10> lens:v(L, #{ a => 3, 10 => 20 }).
 	3
 	11> lens:s(L, #{ a => 3, 10 => 20 }, xyzzy).
 	#{10 => 20,a => xyzzy}
+
+There is also a join variant on hashes:
+
+	> T = {1,2,3,4},
+	> E1 = lens:element(1).
+	> E2 = lens:element(2).
+	> JL = lens:join_map(#{ a => E1, b => E2}).
+	> lens:v(JL, T).
+	#{ a := 1, b := 2}
 	
+Where the set function works in the obvious way:
+
+	> lens:s(JL, T, #{ a => x, b => y}).
+	{x,y,3,4}
+
+
 # Prism tutorial
 
 Lenses work on things which are "products" in nature. That is, they work on objects which is a X *and* an Y *and* a Z, …, and so forth. The dual notion is that of a prism, which works on things which are A *or* B *or* … in nature. In other words, they operate over sum-types. A sum which is commonly used in Erlang is the computation with failure:
