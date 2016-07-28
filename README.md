@@ -164,5 +164,5 @@ That is, if we have a prism which can succesfully focus on a value `A`, then rev
 
 QuickChecked libraries:
 
-* `lens`.
+* `lens` - Almost every function under QuickCheck, but the model still needs some specification to become entirely stable. In particular, I want to generate a lens together with a generator for an underlying object for that lens. This allows one to test the deeply nested lens structure easily by invoking the nested generators as we go along.
 
