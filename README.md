@@ -97,7 +97,43 @@ On maps, you have the lens `lens:key(Key)` where `Key` is the map key to focus o
 	11> lens:s(L, #{ a => 3, 10 => 20 }, xyzzy).
 	#{10 => 20,a => xyzzy}
 	
-# Prisms
+# Prism tutorial
+
+Lenses work on things which are "products" in nature. That is, they work on objects which is a X *and* an Y *and* a Z, …, and so forth. The dual notion is that of a prism, which works on things which are A *or* B *or* … in nature. In other words, they operate over sum-types. A sum which is commonly used in Erlang is the computation with failure:
+
+	{ok, Term} | {error, Reason}
+	
+We can define a prism for this structure. A prism is given by a pair of functions, just like the lens
+
+	#prism { preview, review }
+	
+where the types of the preview and review are "inverted". The function `prism:pre(P, Obj) -> {ok, V} | undefined` defines the preview function of a prism. Given a prism, we can "focus" inside an object to obtain either a value, or undefined. We have the prism `prism:ok()` which focuses on the `ok` part of the above error type. So we have:
+
+	12> P = prism:ok().
+	13> prism:pre(P, {ok, xyzzy}).
+	xyzzy
+	14> prism:pre(P, {error, not_found}).
+	undefined
+	
+Likewise, the function `prism:re(P, V) -> Obj`, will hoist our value inside an object by wrapping it into a result. For our *ok-prism* this correspond to wrapping a value into an ok-tuple
+
+	15> prism:re(P, abracadabra),
+	{ok, abracadabra}
+
+## Prism laws
+
+Like the lenses, prisms must support certain laws for them to work. In particular, they must support relations between their *preview* and *review* functions. The first one is the following rule:
+
+	preview (review A) = {ok, A}
+
+it states that there is an identity between wrapping a value `A` and then unwrapping it again. Furthermore, there is a rule in the other direction:
+
+	preview X = {ok, A} ===> (implies)
+		review A = X
+		
+That is, if we have a prism which can succesfully focus on a value `A`, then reviewing that value reconstructs the original structure *exactly*. That is, there is no other structure in a prism.
+
+# Traversals
 
 …
 
