@@ -1,7 +1,7 @@
 {application, forge,
  [
   {description, "Melt down unstructured data and recast it into beauty"},
-  {vsn, "1"},
+  {vsn, "0.9.0"},
   {registered, []},
   {applications, [
                   kernel,
