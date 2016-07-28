@@ -89,8 +89,18 @@ And of course, we can use the join to set elements as well:
 
 ## Lenses on Maps
 
-…
+On maps, you have the lens `lens:key(Key)` where `Key` is the map key to focus on. It works just like every other lens:
+
+	9> L = map:key(a),
+	10> lens:v(L, #{ a => 3, 10 => 20 }).
+	3
+	11> lens:s(L, #{ a => 3, 10 => 20 }, xyzzy).
+	#{10 => 20,a => xyzzy}
 	
+# Prisms
+
+…
+
 # QuickCheck
 
 QuickChecked libraries:
