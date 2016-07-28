@@ -60,7 +60,7 @@ prop_map() ->
             begin
                 Gen = g_map(Key),
                 Val = int(),
-                lens_props(Gen, Val, lens:map(Key))
+                lens_props(Gen, Val, lens:key(Key))
             end).
             
 t() ->
